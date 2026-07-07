@@ -92,7 +92,5 @@ app.post('/api/orders/update-status', (req, res) => {
 });
 
 // РАЗДАЧА СТРАНИЦ
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/order', (req, res) => res.sendFile(path.join(__dirname, 'client.html')));
-
-app.listen(PORT, () => console.log(`Сервер успешно запущен на http://localhost:${PORT}`));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));-
