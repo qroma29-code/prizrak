@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = 3000;
 
 app.use(express.json());
 
@@ -93,4 +93,6 @@ app.post('/api/orders/update-status', (req, res) => {
 
 // РАЗДАЧА СТРАНИЦ
 app.get('/order', (req, res) => res.sendFile(path.join(__dirname, 'client.html')));
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));-
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
+app.listen(PORT, () => console.log(`Сервер успешно запущен на http://localhost:${PORT}`));
