@@ -4,13 +4,7 @@ const port = process.env.PORT || 3000;
 const fs = require('fs');
 const path = require('path');
 
-app.get ( '/ ' , ( req , res ) = > {   
-  res.send ( ' Hello World! ' )
-} )
 
-app.listen ( port , ( ) = > {​   
-  console.log ( ` Пример приложения , прослушивающего порт $ { port } ` )
-} )
 
 app.use(express.json());
 
