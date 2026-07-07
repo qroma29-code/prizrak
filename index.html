@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Панель управления — Призрак</title>
+    <style>
+        :root { --primary-color: #2c3e50; --accent-color: #3498db; --bg-color: #f5f6fa; }
+        body { font-family: sans-serif; background-color: var(--bg-color); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; width: 320px; }
+        .login-box input, .login-box button { width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 4px; box-sizing: border-box; }
+        .login-box button { background-color: var(--accent-color); color: white; border: none; font-weight: bold; cursor: pointer; }
+        .dashboard { display: none; width: 90%; max-width: 1200px; height: 85vh; background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; grid-template-columns: 240px 1fr; }
+        .sidebar { background-color: var(--primary-color); color: white; padding: 20px; }
+        .main-content { padding: 20px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+        .status-select { padding: 6px 10px; border-radius: 4px; font-size: 13px; font-weight: bold; border: 1px solid #ccc; cursor: pointer; }
+        .status-new { background-color: #ffeaa7; color: #d63031; }
+        .status-progress { background-color: #dff9fb; color: #0984e3; }
+        .status-done { background-color: #badc58; color: #6ab04c; }
+        .status-canceled { background-color: #dfe6e9; color: #2d3436; }
+    </style>
+</head>
+<body>
+
+    <div class="login-box" id="loginForm">
+        <h2>Система «Призрак»</h2>
+        <input type="text" id="username" placeholder="Логин модератора">
+        <button onclick="checkLogin()">Войти</button>
+        <p id="errorMsg" style="color: red; display: none;">Доступ запрещен.</p>
+    </div>
+
+    <div class="dashboard" id="dashboardPanel">
+        <div class="sidebar">
+            <h3>Призрак Учет</h3>
+            <p>Статус: Онлайн</p>
+            <p id="userDisplay"></p>
+            <br>
+            http://localhost:3000
+            <a href="/order" style="color: #3498db; text-decoration: none; font-weight: bold;">~ Форма заказов</a>
+        </div>
+        <div class="main-content">
+            <h2>Текущие заявки</h2>
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Заявитель</th><th>Услуга</th><th>Бюджет</th><th>Статус задания</th></tr>
+                </thead>
+                <tbody id="ordersTableBody">
+                    <!-- Загружается из Node.js -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Проверка логина через сервер
+        async function checkLogin() {
+            const username = document.getElementById('username').value.trim();
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('dashboardPanel').style.display = 'grid';
+                document.getElementById('userDisplay').innerText = "Модератор: " + username;
+                loadOrders(); // Загружаем список заказов после успешного входа
+                setInterval(loadOrders, 5000); // Обновляем список заказов каждые 5 секунд
+            } else {
+                document.getElementById('errorMsg').style.display = 'block';
+            }
+        }
+
+        // Загрузка заказов из базы данных json
+        async function loadOrders() {
+            const response = await fetch('/api/orders');
+            const orders = await response.json();
+            const tbody = document.getElementById('ordersTableBody');
+            tbody.innerHTML = '';
+
+            orders.forEach(order => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>#${order.id}</td>
+                    <td>${order.user}</td>
+                    <td>${order.service}</td>
+                    <td>${order.price}</td>
+                    <td>
+                        <select class="status-select status-${order.status}" onchange="changeStatus(${order.id}, this)">
+                            <option value="new" ${order.status === 'new' ? 'selected' : ''}>Новый</option>
+                            <option value="progress" ${order.status === 'progress' ? 'selected' : ''}>В работе</option>
+                            <option value="done" ${order.status === 'done' ? 'selected' : ''}>Выполнено</option>
+                            <option value="canceled" ${order.status === 'canceled' ? 'selected' : ''}>Отменено</option>
+                        </select>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Отправка нового статуса на сервер Node.js
+        async function changeStatus(orderId, selectElement) {
+            const newStatus = selectElement.value;
+            
+            const response = await fetch('/api/orders/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, newStatus })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                // Обновляем цвет селектора
+                selectElement.className = `status-select status-${newStatus}`;
+            } else {
+                alert('Не удалось обновить статус');
+            }
+        }
+    </script>
+</body>
+</html>

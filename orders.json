@@ -1,0 +1,30 @@
+[
+  {
+    "id": 141,
+    "user": "Roma (moder)",
+    "service": "тест проекта",
+    "price": "0",
+    "status": "done"
+  },
+  {
+    "id": 142,
+    "user": "Гога",
+    "service": "купить самсу",
+    "price": "200",
+    "status": "canceled"
+  },
+  {
+    "id": 143,
+    "user": "Рамазан",
+    "service": "тест 2",
+    "price": "1000000 ₸",
+    "status": "done"
+  },
+  {
+    "id": 144,
+    "user": "Roma",
+    "service": "atata",
+    "price": "100 ₸",
+    "status": "done"
+  }
+]

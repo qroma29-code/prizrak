@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Заказ услуг — Призрак</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f5f6fa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; flex-direction: column; }
+        .order-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 350px; margin-bottom: 20px; }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 20px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; color: #555; }
+        input, button { width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background-color: #e74c3c; color: white; border: none; font-weight: bold; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #c0392b; }
+        .message { text-align: center; font-weight: bold; display: none; margin-top: 15px; }
+        .nav-link { display: block; text-align: center; margin-top: 15px; color: #3498db; text-decoration: none; font-size: 14px; }
+        
+        /* Блок уведомлений */
+        .status-tracker { display: none; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 350px; text-align: center; border-left: 5px solid #3498db; }
+        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 4px; font-weight: bold; margin-top: 10px; }
+        .status-new { background-color: #ffeaa7; color: #d63031; }
+        .status-progress { background-color: #dff9fb; color: #0984e3; }
+        .status-done { background-color: #badc58; color: #6ab04c; }
+        .status-canceled { background-color: #dfe6e9; color: #2d3436; }
+    </style>
+</head>
+<body>
+
+    <div class="order-box">
+        <h2>Оставить заявку на услугу</h2>
+        <form id="orderForm">
+            <label for="studentName">Имя и класс:</label>
+            <input type="text" id="studentName" placeholder="Например: Серикбол К. (10 «А»)" required>
+
+            <label for="serviceType">Что нужно сделать:</label>
+            <input type="text" id="serviceType" placeholder="Например: Принести мел в 204 кабинет" required>
+
+            <label for="budget">Предлагаемый бюджет (₸):</label>
+            <input type="number" id="budget" placeholder="Например: 700" required>
+
+            <button type="submit">Отправить в систему</button>
+        </form>
+        <p id="statusMsg" class="message"></p>
+        <a href="/" class="nav-link">Перейти в Панель Модератора →</a>
+    </div>
+
+    <!-- Виджет отслеживания статуса -->
+    <div class="status-tracker" id="statusTracker">
+        <h3>Отслеживание заказа <span id="trackId"></span></h3>
+        <p>Текущий статус:</p>
+        <span id="trackStatus" class="status-badge">Загрузка...</span>
+    </div>
+
+    <script>
+        let currentOrderId = null;
+        let trackInterval = null;
+
+        document.getElementById('orderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const user = document.getElementById('studentName').value;
+            const service = document.getElementById('serviceType').value;
+            const price = document.getElementById('budget').value + " ₸";
+            const statusMsg = document.getElementById('statusMsg');
+
+            const response = await fetch('/api/orders/new', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user, service, price })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                statusMsg.style.color = "green";
+                statusMsg.innerText = "Заявка успешно отправлена!";
+                statusMsg.style.display = "block";
+                
+                // Запоминаем ID созданного заказа и включаем отслеживание
+                currentOrderId = data.orderId;
+                startTracking(currentOrderId);
+                
+                document.getElementById('orderForm').reset();
+            } else {
+                statusMsg.style.color = "red";
+                statusMsg.innerText = "Ошибка при отправке.";
+                statusMsg.style.display = "block";
+            }
+        });
+
+        // Функция запуска ежесекундной проверки статуса
+        function startTracking(orderId) {
+            document.getElementById('statusTracker').style.display = 'block';
+            document.getElementById('trackId').innerText = `#${orderId}`;
+            
+            if (trackInterval) clearInterval(trackInterval);
+            
+            checkOrderStatus(orderId); // Проверяем первый раз сразу
+            trackInterval = setInterval(() => checkOrderStatus(orderId), 3000); // Опрашиваем каждые 3 секунды
+        }
+
+        // Запрос статуса конкретного заказа с сервера
+        async function checkOrderStatus(orderId) {
+            const response = await fetch(`/api/orders/status/${orderId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const badge = document.getElementById('trackStatus');
+                badge.className = 'status-badge'; // Сброс классов
+                
+                // Переводим статус на понятный язык и красим
+                if (data.status === 'new') {
+                    badge.innerText = 'Новый (Ждет модератора)';
+                    badge.classList.add('status-new');
+                } else if (data.status === 'progress') {
+                    badge.innerText = 'В работе (Исполнитель назначен)';
+                    badge.classList.add('status-progress');
+                } else if (data.status === 'done') {
+                    badge.innerText = 'Выполнено 🎉';
+                    badge.classList.add('status-done');
+                } else if (data.status === 'canceled') {
+                    badge.innerText = 'Отменено ❌';
+                    badge.classList.add('status-canceled');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
